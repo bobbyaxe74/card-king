@@ -2,38 +2,51 @@
 import * as THREE from 'three';
 import { gsap } from 'gsap';
 
+let backTexture;
+let cardTextures = [];
+
+function preloadTextures(callback) {
+  const loader = new THREE.TextureLoader();
+  const texturePromises = [];
+
+  texturePromises.push(new Promise(resolve => {
+    loader.load('/assets/card-back.png', texture => {
+      backTexture = texture;
+      resolve();
+    });
+  }));
+
+  for (let i = 1; i <= 8; i++) {
+    texturePromises.push(new Promise(resolve => {
+      loader.load(`/assets/card${i}.png`, texture => {
+        cardTextures.push(texture);
+        resolve();
+      });
+    }));
+  }
+
+  Promise.all(texturePromises).then(callback);
+}
+
 export function startGame(scene, camera, renderer) {
   let cards = [];
   let flippedCards = [];
-  const level = 8; // 8 pairs = 16 cards
+  const level = 8;
 
-  // Placeholder textures (add your own in /src/assets/)
-  const cardTextures = [
-    new THREE.TextureLoader().load('/assets/card1.png'),
-    new THREE.TextureLoader().load('/assets/card2.png'),
-    new THREE.TextureLoader().load('/assets/card3.png'),
-    new THREE.TextureLoader().load('/assets/card4.png'),
-    new THREE.TextureLoader().load('/assets/card5.png'),
-    new THREE.TextureLoader().load('/assets/card6.png'),
-    new THREE.TextureLoader().load('/assets/card7.png'),
-    new THREE.TextureLoader().load('/assets/card8.png'),
-  ];
-  const backTexture = new THREE.TextureLoader().load('/assets/card-back.png');
+  const edgeMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
 
   function createCard(x, z, value) {
-    const geometry = new THREE.BoxGeometry(2, 3, 0.1); // Width, height, thickness
+    const geometry = new THREE.BoxGeometry(2, 3, 0.1);
     const materials = [
-      new THREE.MeshStandardMaterial({ color: 0x333333 }), // Left
-      new THREE.MeshStandardMaterial({ color: 0x333333 }), // Right
-      new THREE.MeshStandardMaterial({ color: 0x333333 }), // Top
-      new THREE.MeshStandardMaterial({ color: 0x333333 }), // Bottom
-      new THREE.MeshStandardMaterial({ map: backTexture }), // Front (visible initially)
-      new THREE.MeshStandardMaterial({ map: cardTextures[value] }), // Back (visible when flipped)
+      edgeMaterial, edgeMaterial, edgeMaterial, edgeMaterial,
+      new THREE.MeshStandardMaterial({ map: backTexture }),
+      new THREE.MeshStandardMaterial({ map: cardTextures[value] }),
     ];
     const card = new THREE.Mesh(geometry, materials);
     card.position.set(x, 0, z);
-    card.rotation.x = -Math.PI / 2; // Lay flat
+    card.rotation.x = -Math.PI / 2;
     card.userData = { value, flipped: false };
+    card.castShadow = true;
     scene.add(card);
     return card;
   }
@@ -134,19 +147,20 @@ export function startGame(scene, camera, renderer) {
     return array;
   }
 
-  // Add a floor for context
   const floorGeometry = new THREE.PlaneGeometry(20, 20);
   const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x444444 });
   const floor = new THREE.Mesh(floorGeometry, floorMaterial);
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = -0.1;
+  floor.receiveShadow = true;
   scene.add(floor);
 
-  setupBoard();
-  startTimer();
-
-  renderer.shadowMap.enabled = true; // Enable shadows
-  renderer.setPixelRatio(window.devicePixelRatio);
-  cards.forEach(card => card.castShadow = true); // After setupBoard
-  floor.receiveShadow = true; // Add in game.js after floor creation
+  preloadTextures(() => {
+    document.getElementById('ui-overlay').style.display = 'none';
+    setupBoard();
+    startTimer();
+    renderer.shadowMap.enabled = true;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    cards.forEach(card => card.castShadow = true);
+  });
 }
