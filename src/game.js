@@ -16,10 +16,13 @@ function preloadTextures(callback) {
     });
   }));
 
-  for (let i = 1; i <= 8; i++) {
+  for (let i = 1; i <= 12; i++) {
     texturePromises.push(new Promise(resolve => {
       loader.load(`/assets/card${i}.png`, texture => {
         cardTextures.push(texture);
+        resolve();
+      }, undefined, () => {
+        cardTextures.push(new THREE.TextureLoader().load('/assets/card1.png')); // Fallback
         resolve();
       });
     }));
@@ -28,10 +31,9 @@ function preloadTextures(callback) {
   Promise.all(texturePromises).then(callback);
 }
 
-export function startGame(scene, camera, renderer) {
+export function startGame(scene, camera, renderer, level = 8) {
   let cards = [];
   let flippedCards = [];
-  const level = 8;
 
   const edgeMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
 
@@ -40,7 +42,7 @@ export function startGame(scene, camera, renderer) {
     const materials = [
       edgeMaterial, edgeMaterial, edgeMaterial, edgeMaterial,
       new THREE.MeshStandardMaterial({ map: backTexture }),
-      new THREE.MeshStandardMaterial({ map: cardTextures[value] }),
+      new THREE.MeshStandardMaterial({ map: cardTextures[value % cardTextures.length] }),
     ];
     const card = new THREE.Mesh(geometry, materials);
     card.position.set(x, 0, z);
@@ -52,7 +54,7 @@ export function startGame(scene, camera, renderer) {
   }
 
   function setupBoard() {
-    const gridSize = 4;
+    const gridSize = Math.ceil(Math.sqrt(level * 2));
     const spacing = 2.5;
     let values = Array.from({ length: level }, (_, i) => i).concat(Array.from({ length: level }, (_, i) => i));
     values = shuffle(values);
@@ -62,6 +64,10 @@ export function startGame(scene, camera, renderer) {
       const z = (Math.floor(i / gridSize) - gridSize / 2 + 0.5) * spacing;
       cards.push(createCard(x, z, values[i]));
     }
+
+    camera.position.z = gridSize * 3;
+    camera.position.y = gridSize * 2;
+    camera.lookAt(0, 0, 0);
   }
 
   function flipCard(card) {
@@ -94,6 +100,7 @@ export function startGame(scene, camera, renderer) {
       if (cards.length === 0) {
         document.getElementById('ui-overlay').innerHTML = '<h1>You Win!</h1>';
         document.getElementById('ui-overlay').style.display = 'flex';
+        gsap.to(camera.position, { z: 10, y: 10, duration: 1, ease: 'power2.inOut' });
       }
     } else {
       flippedCards.forEach(card => {
@@ -109,7 +116,7 @@ export function startGame(scene, camera, renderer) {
   }
 
   function startTimer() {
-    const timerDuration = 30000;
+    const timerDuration = level * 4000;
     const timerGeometry = new THREE.BoxGeometry(10, 0.2, 0.2);
     const timerMaterial = new THREE.MeshStandardMaterial({ color: 0xC0392B });
     const timerBar = new THREE.Mesh(timerGeometry, timerMaterial);
@@ -139,6 +146,20 @@ export function startGame(scene, camera, renderer) {
     if (intersects.length > 0) flipCard(intersects[0].object);
   });
 
+  window.addEventListener('mousemove', (event) => {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(cards);
+    cards.forEach(card => {
+      if (intersects.length > 0 && intersects[0].object === card && !card.userData.flipped) {
+        gsap.to(card.position, { y: 0.5, duration: 0.2 });
+      } else {
+        gsap.to(card.position, { y: 0, duration: 0.2 });
+      }
+    });
+  });
+
   function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -160,7 +181,6 @@ export function startGame(scene, camera, renderer) {
     setupBoard();
     startTimer();
     renderer.shadowMap.enabled = true;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     cards.forEach(card => card.castShadow = true);
   });
 }

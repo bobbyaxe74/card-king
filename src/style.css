@@ -30,15 +30,16 @@ body, html {
   margin-bottom: 20px;
 }
 
-#ui-overlay button {
+.start-btn {
   padding: 10px 20px;
   font-size: 24px;
   background: #16A085;
   color: white;
   border: none;
   cursor: pointer;
+  margin: 10px;
 }
 
-#ui-overlay button:hover {
+.start-btn:hover {
   background: #1ABC9C;
 }
