@@ -9,16 +9,16 @@ export function startGame(scene, camera, renderer) {
 
   // Placeholder textures (add your own in /src/assets/)
   const cardTextures = [
-    new THREE.TextureLoader().load('https://via.placeholder.com/200x300/FF0000/FFFFFF?text=1'),
-    new THREE.TextureLoader().load('https://via.placeholder.com/200x300/00FF00/FFFFFF?text=2'),
-    new THREE.TextureLoader().load('https://via.placeholder.com/200x300/0000FF/FFFFFF?text=3'),
-    new THREE.TextureLoader().load('https://via.placeholder.com/200x300/FFFF00/FFFFFF?text=4'),
-    new THREE.TextureLoader().load('https://via.placeholder.com/200x300/FF00FF/FFFFFF?text=5'),
-    new THREE.TextureLoader().load('https://via.placeholder.com/200x300/00FFFF/FFFFFF?text=6'),
-    new THREE.TextureLoader().load('https://via.placeholder.com/200x300/800080/FFFFFF?text=7'),
-    new THREE.TextureLoader().load('https://via.placeholder.com/200x300/808080/FFFFFF?text=8'),
+    new THREE.TextureLoader().load('/assets/card1.png'),
+    new THREE.TextureLoader().load('/assets/card2.png'),
+    new THREE.TextureLoader().load('/assets/card3.png'),
+    new THREE.TextureLoader().load('/assets/card4.png'),
+    new THREE.TextureLoader().load('/assets/card5.png'),
+    new THREE.TextureLoader().load('/assets/card6.png'),
+    new THREE.TextureLoader().load('/assets/card7.png'),
+    new THREE.TextureLoader().load('/assets/card8.png'),
   ];
-  const backTexture = new THREE.TextureLoader().load('https://via.placeholder.com/200x300/16A085/FFFFFF?text=Back');
+  const backTexture = new THREE.TextureLoader().load('/assets/card-back.png');
 
   function createCard(x, z, value) {
     const geometry = new THREE.BoxGeometry(2, 3, 0.1); // Width, height, thickness
@@ -146,6 +146,7 @@ export function startGame(scene, camera, renderer) {
   startTimer();
 
   renderer.shadowMap.enabled = true; // Enable shadows
+  renderer.setPixelRatio(window.devicePixelRatio);
   cards.forEach(card => card.castShadow = true); // After setupBoard
   floor.receiveShadow = true; // Add in game.js after floor creation
 }
