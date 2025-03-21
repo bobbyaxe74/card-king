@@ -178,6 +178,37 @@ export function startGame(scene, camera, renderer, level = 8) {
     camera.lookAt(0, 0, 0);
   }
 
+  function clearScene() {
+    // Remove all cards and mats from the scene
+    cards.forEach(card => {
+      gsap.killTweensOf(card.position); // Stop floating animations
+      scene.remove(card);
+    });
+    cards = [];
+    flippedCards = [];
+    scene.children.forEach(child => {
+      if (child.isMesh && child.geometry instanceof THREE.PlaneGeometry) {
+        scene.remove(child);
+      }
+    });
+  }
+
+  function restartGame() {
+    clearScene();
+    score = 0;
+    timeRemaining = level * 4000;
+    document.getElementById('ui-overlay').style.display = 'none';
+    setupBoard();
+    startTimer();
+    renderer.shadowMap.enabled = true;
+    cards.forEach(card => card.castShadow = true);
+
+    // Play background music
+    if (backgroundMusic && !backgroundMusic.isPlaying) {
+      backgroundMusic.play();
+    }
+  }
+
   function flipCard(card) {
     if (card.userData.flipped || flippedCards.length >= 2) return;
     card.userData.flipped = true;
@@ -224,7 +255,11 @@ export function startGame(scene, camera, renderer, level = 8) {
       });
       cards = cards.filter(c => !flippedCards.includes(c));
       if (cards.length === 0) {
-        document.getElementById('ui-overlay').innerHTML = `<h1>You Win!</h1><p>Final Score: ${score}</p>`;
+        document.getElementById('ui-overlay').innerHTML = `
+          <h1>You Win!</h1>
+          <p>Final Score: ${score}</p>
+          <button class="play-again-btn">Play Again</button>
+        `;
         document.getElementById('ui-overlay').style.display = 'flex';
         gsap.to(camera.position, { z: 10, y: 10, duration: 1, ease: 'power2.inOut' });
 
@@ -244,6 +279,9 @@ export function startGame(scene, camera, renderer, level = 8) {
         }
         document.getElementById('timer').style.display = 'none';
         document.getElementById('score').style.display = 'none';
+
+        // Add event listener for Play Again button
+        document.querySelector('.play-again-btn').addEventListener('click', restartGame);
       }
     } else {
       flippedCards.forEach(card => {
@@ -287,7 +325,11 @@ export function startGame(scene, camera, renderer, level = 8) {
       if (timeRemaining <= 0) {
         clearInterval(timerInterval);
         if (cards.length > 0) {
-          document.getElementById('ui-overlay').innerHTML = `<h1>Time’s Up!</h1><p>Final Score: ${score}</p>`;
+          document.getElementById('ui-overlay').innerHTML = `
+            <h1>Time’s Up!</h1>
+            <p>Final Score: ${score}</p>
+            <button class="play-again-btn">Play Again</button>
+          `;
           document.getElementById('ui-overlay').style.display = 'flex';
 
           // Play lose sound
@@ -303,6 +345,9 @@ export function startGame(scene, camera, renderer, level = 8) {
           // Hide timer and score
           document.getElementById('timer').style.display = 'none';
           document.getElementById('score').style.display = 'none';
+
+          // Add event listener for Play Again button
+          document.querySelector('.play-again-btn').addEventListener('click', restartGame);
         }
       }
     }, 1000);
