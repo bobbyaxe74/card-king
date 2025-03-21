@@ -9,6 +9,7 @@ body, html {
 #game-container {
   width: 100vw;
   height: 100vh;
+  position: relative; /* Ensure the container is a positioning context for the timer */
 }
 
 #ui-overlay {
@@ -42,4 +43,17 @@ body, html {
 
 .start-btn:hover {
   background: #1ABC9C;
+}
+
+#timer {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  font-size: 24px;
+  color: #ff5555; /* Red color to match the previous bar */
+  background: rgba(0, 0, 0, 0.7); /* Match the overlay's background style */
+  padding: 5px 10px;
+  border-radius: 5px;
+  z-index: 5; /* Ensure it appears above the game canvas */
+  display: none; /* Hidden until the game starts */
 }

@@ -124,6 +124,7 @@ function preloadTexturesAndAudio(callback) {
 export function startGame(scene, camera, renderer, level = 8) {
   let cards = [];
   let flippedCards = [];
+  let timerInterval = null;
 
   // Add audio listener to camera
   camera.add(audioListener);
@@ -226,6 +227,12 @@ export function startGame(scene, camera, renderer, level = 8) {
         if (backgroundMusic && backgroundMusic.isPlaying) {
           backgroundMusic.stop();
         }
+
+        // Stop and hide timer
+        if (timerInterval) {
+          clearInterval(timerInterval);
+        }
+        document.getElementById('timer').style.display = 'none';
       }
     } else {
       flippedCards.forEach(card => {
@@ -241,18 +248,31 @@ export function startGame(scene, camera, renderer, level = 8) {
   }
 
   function startTimer() {
-    const timerDuration = level * 4000;
-    const timerGeometry = new THREE.BoxGeometry(10, 0.2, 0.2);
-    const timerMaterial = new THREE.MeshStandardMaterial({ color: 0xC0392B });
-    const timerBar = new THREE.Mesh(timerGeometry, timerMaterial);
-    timerBar.position.set(0, 5, 0);
-    scene.add(timerBar);
+    const timerDuration = level * 4000; // Total time in milliseconds
+    let timeRemaining = timerDuration; // Time remaining in milliseconds
 
-    gsap.to(timerBar.scale, {
-      x: 0,
-      duration: timerDuration / 1000,
-      ease: 'linear',
-      onComplete: () => {
+    // Show the timer
+    const timerElement = document.getElementById('timer');
+    timerElement.style.display = 'block';
+
+    // Update timer display
+    function updateTimerDisplay() {
+      const seconds = Math.floor(timeRemaining / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = seconds % 60;
+      timerElement.textContent = `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+    }
+
+    // Initial display
+    updateTimerDisplay();
+
+    // Update timer every second
+    timerInterval = setInterval(() => {
+      timeRemaining -= 1000;
+      updateTimerDisplay();
+
+      if (timeRemaining <= 0) {
+        clearInterval(timerInterval);
         if (cards.length > 0) {
           document.getElementById('ui-overlay').innerHTML = '<h1>Time’s Up!</h1>';
           document.getElementById('ui-overlay').style.display = 'flex';
@@ -266,9 +286,12 @@ export function startGame(scene, camera, renderer, level = 8) {
           if (backgroundMusic && backgroundMusic.isPlaying) {
             backgroundMusic.stop();
           }
+
+          // Hide timer
+          timerElement.style.display = 'none';
         }
-      },
-    });
+      }
+    }, 1000);
   }
 
   const raycaster = new THREE.Raycaster();
