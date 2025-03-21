@@ -52,8 +52,8 @@ export function startGame(scene, camera, renderer, level = 8) {
     const geometry = new THREE.BoxGeometry(2, 3, 0.1);
     const materials = [
       edgeMaterial, edgeMaterial, edgeMaterial, edgeMaterial,
-      new THREE.MeshStandardMaterial({ map: backTexture }),
-      new THREE.MeshStandardMaterial({ map: cardTextures[value % cardTextures.length] }),
+      new THREE.MeshStandardMaterial({ map: backTexture, emissive: 0x00FFFF, emissiveIntensity: 0.2 }),
+      new THREE.MeshStandardMaterial({ map: cardTextures[value % cardTextures.length], emissive: 0x00FFFF, emissiveIntensity: 0.2 }),
     ];
     const card = new THREE.Mesh(geometry, materials);
     card.position.set(x, 0, z);
@@ -199,17 +199,16 @@ export function startGame(scene, camera, renderer, level = 8) {
         transparent: true,
         opacity: 0.8,
         alphaTest: 0.5,
-        side: THREE.DoubleSide, // Ensure visibility from all angles
+        side: THREE.DoubleSide,
       })
     : new THREE.MeshStandardMaterial({
         color: 0x808080,
         transparent: true,
-        opacity: 0.0, // Fully transparent if no texture
+        opacity: 0.0,
         alphaTest: 0.5,
         side: THREE.DoubleSide,
       });
 
-  // Only add mats if the texture loaded successfully and isn't fully transparent
   if (matTexture) {
     const mat1 = new THREE.Mesh(matGeometry, matMaterial);
     mat1.position.set(-4, 0, 0);
@@ -227,101 +226,77 @@ export function startGame(scene, camera, renderer, level = 8) {
     scene.add(mat3);
   }
 
-  // NET-like Background Effect
-  const netParticleCount = 100;
-  const netGeometry = new THREE.BufferGeometry();
-  const netPositions = new Float32Array(netParticleCount * 3);
-  const netVelocities = new Float32Array(netParticleCount * 3);
+  // Star Particles (Background)
+  const starCount = 200;
+  const starGeometry = new THREE.BufferGeometry();
 
-  for (let i = 0; i < netParticleCount; i++) {
-    netPositions[i * 3] = (Math.random() - 0.5) * 50;
-    netPositions[i * 3 + 1] = (Math.random() - 0.5) * 50;
-    netPositions[i * 3 + 2] = (Math.random() - 0.5) * 50;
-    netVelocities[i * 3] = (Math.random() - 0.5) * 0.02;
-    netVelocities[i * 3 + 1] = (Math.random() - 0.5) * 0.02;
-    netVelocities[i * 3 + 2] = (Math.random() - 0.5) * 0.02;
+  const starPositions = new Float32Array(starCount * 3);
+  for (let i = 0; i < starCount; i++) {
+    starPositions[i * 3] = (Math.random() - 0.5) * 100;
+    starPositions[i * 3 + 1] = (Math.random() - 0.5) * 100;
+    starPositions[i * 3 + 2] = (Math.random() - 0.5) * 100;
   }
+  starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
 
-  netGeometry.setAttribute('position', new THREE.BufferAttribute(netPositions, 3));
-  const netMaterial = new THREE.PointsMaterial({
+  const starColors = new Float32Array(starCount * 3);
+  for (let i = 0; i < starCount; i++) {
+    const color = new THREE.Color();
+    color.setHSL(Math.random(), 0.7, 0.7); // Random hue, high saturation, high lightness
+    starColors[i * 3] = color.r;
+    starColors[i * 3 + 1] = color.g;
+    starColors[i * 3 + 2] = color.b;
+  }
+  starGeometry.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+
+  const starOpacities = new Float32Array(starCount);
+  for (let i = 0; i < starCount; i++) {
+    starOpacities[i] = Math.random() * 0.5 + 0.3; // Random opacity between 0.3 and 0.8
+  }
+  starGeometry.setAttribute('opacity', new THREE.BufferAttribute(starOpacities, 1));
+
+  const starMaterial = new THREE.PointsMaterial({
     size: 0.1,
-    color: 0x00FFFF,
     transparent: true,
-    opacity: 0.7,
+    opacity: 0.9,
+    vertexColors: true, // Enable per-vertex colors
   });
-  const netParticles = new THREE.Points(netGeometry, netMaterial);
-  scene.add(netParticles);
 
-  const maxConnections = 5;
-  const maxDistance = 10;
-  const lineGeometry = new THREE.BufferGeometry();
-  const linePositions = new Float32Array(netParticleCount * maxConnections * 6);
-  const lineMaterial = new THREE.LineBasicMaterial({
-    color: 0x00FFFF,
-    transparent: true,
-    opacity: 0.3,
-  });
-  const lines = new THREE.LineSegments(lineGeometry, lineMaterial);
-  scene.add(lines);
+  // Custom shader to handle per-vertex opacity
+  starMaterial.onBeforeCompile = shader => {
+    shader.vertexShader = `
+      attribute float opacity;
+      varying float vOpacity;
+      ${shader.vertexShader}
+    `;
+    shader.vertexShader = shader.vertexShader.replace(
+      '#include <fog_vertex>',
+      `
+      #include <fog_vertex>
+      vOpacity = opacity;
+      `
+    );
+    shader.fragmentShader = `
+      varying float vOpacity;
+      ${shader.fragmentShader}
+    `;
+    shader.fragmentShader = shader.fragmentShader.replace(
+      'gl_FragColor = vec4( diffuse, opacity );',
+      'gl_FragColor = vec4( diffuse, opacity * vOpacity );'
+    );
+  };
 
-  function updateLines() {
-    const positions = netParticles.geometry.attributes.position.array;
-    let lineIndex = 0;
+  const stars = new THREE.Points(starGeometry, starMaterial);
+  scene.add(stars);
 
-    for (let i = 0; i < netParticleCount; i++) {
-      const x1 = positions[i * 3];
-      const y1 = positions[i * 3 + 1];
-      const z1 = positions[i * 3 + 2];
-      let connections = 0;
-
-      for (let j = 0; j < netParticleCount; j++) {
-        if (i === j || connections >= maxConnections) continue;
-
-        const x2 = positions[j * 3];
-        const y2 = positions[j * 3 + 1];
-        const z2 = positions[j * 3 + 2];
-
-        const dx = x2 - x1;
-        const dy = y2 - y1;
-        const dz = z2 - z1;
-        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-        if (distance < maxDistance) {
-          linePositions[lineIndex * 6] = x1;
-          linePositions[lineIndex * 6 + 1] = y1;
-          linePositions[lineIndex * 6 + 2] = z1;
-          linePositions[lineIndex * 6 + 3] = x2;
-          linePositions[lineIndex * 6 + 4] = y2;
-          linePositions[lineIndex * 6 + 5] = z2;
-          lineIndex++;
-          connections++;
-        }
-      }
+  function animateStars() {
+    const opacities = starGeometry.attributes.opacity.array;
+    for (let i = 0; i < starCount; i++) {
+      opacities[i] = 0.3 + 0.5 * Math.sin(Date.now() * 0.001 + i); // Twinkle effect
     }
-
-    lineGeometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
-    lineGeometry.setDrawRange(0, lineIndex * 2);
-    lineGeometry.attributes.position.needsUpdate = true;
+    starGeometry.attributes.opacity.needsUpdate = true;
+    requestAnimationFrame(animateStars);
   }
-
-  function animateNet() {
-    const positions = netParticles.geometry.attributes.position.array;
-    for (let i = 0; i < netParticleCount; i++) {
-      positions[i * 3] += netVelocities[i * 3];
-      positions[i * 3 + 1] += netVelocities[i * 3 + 1];
-      positions[i * 3 + 2] += netVelocities[i * 3 + 2];
-
-      if (positions[i * 3] > 25) positions[i * 3] = -25;
-      if (positions[i * 3] < -25) positions[i * 3] = 25;
-      if (positions[i * 3 + 1] > 25) positions[i * 3 + 1] = -25;
-      if (positions[i * 3 + 1] < -25) positions[i * 3 + 1] = 25;
-      if (positions[i * 3 + 2] > 25) positions[i * 3 + 2] = -25;
-      if (positions[i * 3 + 2] < -25) positions[i * 3 + 2] = 25;
-    }
-    netParticles.geometry.attributes.position.needsUpdate = true;
-    updateLines();
-    requestAnimationFrame(animateNet);
-  }
+  animateStars();
 
   preloadTextures(() => {
     document.getElementById('ui-overlay').style.display = 'none';
@@ -329,6 +304,5 @@ export function startGame(scene, camera, renderer, level = 8) {
     startTimer();
     renderer.shadowMap.enabled = true;
     cards.forEach(card => card.castShadow = true);
-    animateNet();
   });
 }
