@@ -6,12 +6,19 @@ let backTexture;
 let cardTextures = [];
 let matTexture;
 
-function preloadTextures(callback) {
-  const loader = new THREE.TextureLoader();
-  const texturePromises = [];
+// Audio variables
+let flipSound, matchSound, winSound, loseSound, backgroundMusic;
+let audioListener;
 
+function preloadTexturesAndAudio(callback) {
+  const loader = new THREE.TextureLoader();
+  const audioLoader = new THREE.AudioLoader();
+  const texturePromises = [];
+  const audioPromises = [];
+
+  // Load textures
   texturePromises.push(new Promise(resolve => {
-    loader.load('/assets/card-back.png', texture => {
+    loader.load('/assets/image/card-back.png', texture => {
       backTexture = texture;
       resolve();
     });
@@ -19,11 +26,11 @@ function preloadTextures(callback) {
 
   for (let i = 1; i <= 12; i++) {
     texturePromises.push(new Promise(resolve => {
-      loader.load(`/assets/card${i}.png`, texture => {
+      loader.load(`/assets/image/card${i}.png`, texture => {
         cardTextures.push(texture);
         resolve();
       }, undefined, () => {
-        cardTextures.push(new THREE.TextureLoader().load('/assets/card1.png'));
+        cardTextures.push(new THREE.TextureLoader().load('/assets/image/card1.png'));
         resolve();
       });
     }));
@@ -39,12 +46,87 @@ function preloadTextures(callback) {
     });
   }));
 
-  Promise.all(texturePromises).then(callback);
+  // Setup audio listener
+  audioListener = new THREE.AudioListener();
+  const audioContext = audioListener.context;
+  audioContext.resume(); // Ensure audio context is resumed
+
+  // Load sound effects
+  audioPromises.push(new Promise(resolve => {
+    audioLoader.load('/assets/audio/flip.wav', buffer => {
+      flipSound = new THREE.Audio(audioListener);
+      flipSound.setBuffer(buffer);
+      flipSound.setVolume(0.5);
+      resolve();
+    }, undefined, () => {
+      console.warn('Failed to load flip.wav, sound will be unavailable.');
+      flipSound = null;
+      resolve();
+    });
+  }));
+
+  audioPromises.push(new Promise(resolve => {
+    audioLoader.load('/assets/audio/match.wav', buffer => {
+      matchSound = new THREE.Audio(audioListener);
+      matchSound.setBuffer(buffer);
+      matchSound.setVolume(0.7);
+      resolve();
+    }, undefined, () => {
+      console.warn('Failed to load match.wav, sound will be unavailable.');
+      matchSound = null;
+      resolve();
+    });
+  }));
+
+  audioPromises.push(new Promise(resolve => {
+    audioLoader.load('/assets/audio/win.wav', buffer => {
+      winSound = new THREE.Audio(audioListener);
+      winSound.setBuffer(buffer);
+      winSound.setVolume(0.8);
+      resolve();
+    }, undefined, () => {
+      console.warn('Failed to load win.wav, sound will be unavailable.');
+      winSound = null;
+      resolve();
+    });
+  }));
+
+  audioPromises.push(new Promise(resolve => {
+    audioLoader.load('/assets/audio/lose.wav', buffer => {
+      loseSound = new THREE.Audio(audioListener);
+      loseSound.setBuffer(buffer);
+      loseSound.setVolume(0.8);
+      resolve();
+    }, undefined, () => {
+      console.warn('Failed to load lose.wav, sound will be unavailable.');
+      loseSound = null;
+      resolve();
+    });
+  }));
+
+  audioPromises.push(new Promise(resolve => {
+    audioLoader.load('/assets/audio/background.wav', buffer => {
+      backgroundMusic = new THREE.Audio(audioListener);
+      backgroundMusic.setBuffer(buffer);
+      backgroundMusic.setLoop(true);
+      backgroundMusic.setVolume(0.3);
+      resolve();
+    }, undefined, () => {
+      console.warn('Failed to load background.wav, music will be unavailable.');
+      backgroundMusic = null;
+      resolve();
+    });
+  }));
+
+  Promise.all([...texturePromises, ...audioPromises]).then(callback);
 }
 
 export function startGame(scene, camera, renderer, level = 8) {
   let cards = [];
   let flippedCards = [];
+
+  // Add audio listener to camera
+  camera.add(audioListener);
 
   const edgeMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
 
@@ -103,6 +185,11 @@ export function startGame(scene, camera, renderer, level = 8) {
     });
     flippedCards.push(card);
 
+    // Play flip sound
+    if (flipSound && !flipSound.isPlaying) {
+      flipSound.play();
+    }
+
     if (flippedCards.length === 2) {
       setTimeout(checkMatch, 1000);
     }
@@ -110,6 +197,11 @@ export function startGame(scene, camera, renderer, level = 8) {
 
   function checkMatch() {
     if (flippedCards[0].userData.value === flippedCards[1].userData.value) {
+      // Play match sound
+      if (matchSound && !matchSound.isPlaying) {
+        matchSound.play();
+      }
+
       flippedCards.forEach(card => {
         gsap.to(card.scale, {
           x: 0,
@@ -124,6 +216,16 @@ export function startGame(scene, camera, renderer, level = 8) {
         document.getElementById('ui-overlay').innerHTML = '<h1>You Win!</h1>';
         document.getElementById('ui-overlay').style.display = 'flex';
         gsap.to(camera.position, { z: 10, y: 10, duration: 1, ease: 'power2.inOut' });
+
+        // Play win sound
+        if (winSound && !winSound.isPlaying) {
+          winSound.play();
+        }
+
+        // Stop background music
+        if (backgroundMusic && backgroundMusic.isPlaying) {
+          backgroundMusic.stop();
+        }
       }
     } else {
       flippedCards.forEach(card => {
@@ -154,6 +256,16 @@ export function startGame(scene, camera, renderer, level = 8) {
         if (cards.length > 0) {
           document.getElementById('ui-overlay').innerHTML = '<h1>Time’s Up!</h1>';
           document.getElementById('ui-overlay').style.display = 'flex';
+
+          // Play lose sound
+          if (loseSound && !loseSound.isPlaying) {
+            loseSound.play();
+          }
+
+          // Stop background music
+          if (backgroundMusic && backgroundMusic.isPlaying) {
+            backgroundMusic.stop();
+          }
         }
       },
     });
@@ -241,7 +353,7 @@ export function startGame(scene, camera, renderer, level = 8) {
   const starColors = new Float32Array(starCount * 3);
   for (let i = 0; i < starCount; i++) {
     const color = new THREE.Color();
-    color.setHSL(Math.random(), 0.7, 0.7); // Random hue, high saturation, high lightness
+    color.setHSL(Math.random(), 0.7, 0.7);
     starColors[i * 3] = color.r;
     starColors[i * 3 + 1] = color.g;
     starColors[i * 3 + 2] = color.b;
@@ -250,7 +362,7 @@ export function startGame(scene, camera, renderer, level = 8) {
 
   const starOpacities = new Float32Array(starCount);
   for (let i = 0; i < starCount; i++) {
-    starOpacities[i] = Math.random() * 0.5 + 0.3; // Random opacity between 0.3 and 0.8
+    starOpacities[i] = Math.random() * 0.5 + 0.3;
   }
   starGeometry.setAttribute('opacity', new THREE.BufferAttribute(starOpacities, 1));
 
@@ -258,10 +370,9 @@ export function startGame(scene, camera, renderer, level = 8) {
     size: 0.1,
     transparent: true,
     opacity: 0.9,
-    vertexColors: true, // Enable per-vertex colors
+    vertexColors: true,
   });
 
-  // Custom shader to handle per-vertex opacity
   starMaterial.onBeforeCompile = shader => {
     shader.vertexShader = `
       attribute float opacity;
@@ -291,18 +402,23 @@ export function startGame(scene, camera, renderer, level = 8) {
   function animateStars() {
     const opacities = starGeometry.attributes.opacity.array;
     for (let i = 0; i < starCount; i++) {
-      opacities[i] = 0.3 + 0.5 * Math.sin(Date.now() * 0.001 + i); // Twinkle effect
+      opacities[i] = 0.3 + 0.5 * Math.sin(Date.now() * 0.001 + i);
     }
     starGeometry.attributes.opacity.needsUpdate = true;
     requestAnimationFrame(animateStars);
   }
   animateStars();
 
-  preloadTextures(() => {
+  preloadTexturesAndAudio(() => {
     document.getElementById('ui-overlay').style.display = 'none';
     setupBoard();
     startTimer();
     renderer.shadowMap.enabled = true;
     cards.forEach(card => card.castShadow = true);
+
+    // Play background music
+    if (backgroundMusic && !backgroundMusic.isPlaying) {
+      backgroundMusic.play();
+    }
   });
 }
