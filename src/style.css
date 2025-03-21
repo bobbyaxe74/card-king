@@ -9,7 +9,7 @@ body, html {
 #game-container {
   width: 100vw;
   height: 100vh;
-  position: relative; /* Ensure the container is a positioning context for the timer */
+  position: relative; /* Ensure the container is a positioning context for the timer and score */
 }
 
 #ui-overlay {
@@ -52,6 +52,19 @@ body, html {
   font-size: 24px;
   color: #ff5555; /* Red color to match the previous bar */
   background: rgba(0, 0, 0, 0.7); /* Match the overlay's background style */
+  padding: 5px 10px;
+  border-radius: 5px;
+  z-index: 5; /* Ensure it appears above the game canvas */
+  display: none; /* Hidden until the game starts */
+}
+
+#score {
+  position: absolute;
+  top: 60px; /* Positioned below the timer (20px top + 24px font size + 5px padding + some spacing) */
+  left: 20px;
+  font-size: 24px;
+  color: #ff5555; /* Match the timer's color */
+  background: rgba(0, 0, 0, 0.7); /* Match the timer's background */
   padding: 5px 10px;
   border-radius: 5px;
   z-index: 5; /* Ensure it appears above the game canvas */

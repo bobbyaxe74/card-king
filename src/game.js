@@ -125,6 +125,8 @@ export function startGame(scene, camera, renderer, level = 8) {
   let cards = [];
   let flippedCards = [];
   let timerInterval = null;
+  let score = 0; // Initialize score
+  let timeRemaining = level * 4000; // Store timeRemaining for score calculation
 
   // Add audio listener to camera
   camera.add(audioListener);
@@ -203,6 +205,14 @@ export function startGame(scene, camera, renderer, level = 8) {
         matchSound.play();
       }
 
+      // Calculate points based on remaining time
+      const points = Math.floor(timeRemaining / 1000); // Points = remaining seconds
+      score += points;
+
+      // Update score display
+      const scoreElement = document.getElementById('score');
+      scoreElement.textContent = `Score: ${score}`;
+
       flippedCards.forEach(card => {
         gsap.to(card.scale, {
           x: 0,
@@ -214,7 +224,7 @@ export function startGame(scene, camera, renderer, level = 8) {
       });
       cards = cards.filter(c => !flippedCards.includes(c));
       if (cards.length === 0) {
-        document.getElementById('ui-overlay').innerHTML = '<h1>You Win!</h1>';
+        document.getElementById('ui-overlay').innerHTML = `<h1>You Win!</h1><p>Final Score: ${score}</p>`;
         document.getElementById('ui-overlay').style.display = 'flex';
         gsap.to(camera.position, { z: 10, y: 10, duration: 1, ease: 'power2.inOut' });
 
@@ -228,11 +238,12 @@ export function startGame(scene, camera, renderer, level = 8) {
           backgroundMusic.stop();
         }
 
-        // Stop and hide timer
+        // Stop and hide timer and score
         if (timerInterval) {
           clearInterval(timerInterval);
         }
         document.getElementById('timer').style.display = 'none';
+        document.getElementById('score').style.display = 'none';
       }
     } else {
       flippedCards.forEach(card => {
@@ -248,19 +259,21 @@ export function startGame(scene, camera, renderer, level = 8) {
   }
 
   function startTimer() {
-    const timerDuration = level * 4000; // Total time in milliseconds
-    let timeRemaining = timerDuration; // Time remaining in milliseconds
+    timeRemaining = level * 4000; // Total time in milliseconds
 
-    // Show the timer
+    // Show the timer and score
     const timerElement = document.getElementById('timer');
+    const scoreElement = document.getElementById('score');
     timerElement.style.display = 'block';
+    scoreElement.style.display = 'block';
+    scoreElement.textContent = `Score: ${score}`; // Initialize score display
 
     // Update timer display
     function updateTimerDisplay() {
       const seconds = Math.floor(timeRemaining / 1000);
       const minutes = Math.floor(seconds / 60);
       const remainingSeconds = seconds % 60;
-      timerElement.textContent = `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+      timerElement.textContent = `Time: ${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
     }
 
     // Initial display
@@ -274,7 +287,7 @@ export function startGame(scene, camera, renderer, level = 8) {
       if (timeRemaining <= 0) {
         clearInterval(timerInterval);
         if (cards.length > 0) {
-          document.getElementById('ui-overlay').innerHTML = '<h1>Time’s Up!</h1>';
+          document.getElementById('ui-overlay').innerHTML = `<h1>Time’s Up!</h1><p>Final Score: ${score}</p>`;
           document.getElementById('ui-overlay').style.display = 'flex';
 
           // Play lose sound
@@ -287,8 +300,9 @@ export function startGame(scene, camera, renderer, level = 8) {
             backgroundMusic.stop();
           }
 
-          // Hide timer
-          timerElement.style.display = 'none';
+          // Hide timer and score
+          document.getElementById('timer').style.display = 'none';
+          document.getElementById('score').style.display = 'none';
         }
       }
     }, 1000);
