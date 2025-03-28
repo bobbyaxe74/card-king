@@ -137,8 +137,8 @@ export function startGame(scene, camera, renderer, level = 8) {
     const geometry = new THREE.BoxGeometry(2, 3, 0.1);
     const materials = [
       edgeMaterial, edgeMaterial, edgeMaterial, edgeMaterial,
-      new THREE.MeshStandardMaterial({ map: backTexture, emissive: 0x00FFFF, emissiveIntensity: 0.2 }),
-      new THREE.MeshStandardMaterial({ map: cardTextures[value % cardTextures.length], emissive: 0x00FFFF, emissiveIntensity: 0.2 }),
+      new THREE.MeshStandardMaterial({ map: backTexture, emissive: 0xFFFFFF, emissiveIntensity: 0.0 }),
+      new THREE.MeshStandardMaterial({ map: cardTextures[value % cardTextures.length], emissive: 0xFFFFFF, emissiveIntensity: 0.0 }),
     ];
     const card = new THREE.Mesh(geometry, materials);
     card.position.set(x, 0, z);
