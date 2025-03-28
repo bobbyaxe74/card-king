@@ -25,7 +25,7 @@ import card20 from './assets/image/card20.png';
 import card21 from './assets/image/card21.png';
 import card22 from './assets/image/card22.png';
 import card23 from './assets/image/card23.png';
-import matImage from './assets/mat.png';
+import matImage from './assets/texture/mat.png';
 import flipWav from './assets/audio/flip.wav';
 import matchWav from './assets/audio/match.wav';
 import winWav from './assets/audio/win.wav';
