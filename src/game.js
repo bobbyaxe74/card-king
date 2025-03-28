@@ -1,6 +1,37 @@
 // game.js
 import * as THREE from 'three';
 import { gsap } from 'gsap';
+import cardBack from './assets/image/card-back.png';
+import card1 from './assets/image/card1.png';
+import card2 from './assets/image/card2.png';
+import card3 from './assets/image/card3.png';
+import card4 from './assets/image/card4.png';
+import card5 from './assets/image/card5.png';
+import card6 from './assets/image/card6.png';
+import card7 from './assets/image/card7.png';
+import card8 from './assets/image/card8.png';
+import card9 from './assets/image/card9.png';
+import card10 from './assets/image/card10.png';
+import card11 from './assets/image/card11.png';
+import card12 from './assets/image/card12.png';
+import card13 from './assets/image/card13.png';
+import card14 from './assets/image/card14.png';
+import card15 from './assets/image/card15.png';
+import card16 from './assets/image/card16.png';
+import card17 from './assets/image/card17.png';
+import card18 from './assets/image/card18.png';
+import card19 from './assets/image/card19.png';
+import card20 from './assets/image/card20.png';
+import card21 from './assets/image/card21.png';
+import card22 from './assets/image/card22.png';
+import card23 from './assets/image/card23.png';
+import matImage from './assets/mat.png';
+import flipWav from './assets/audio/flip.wav';
+import matchWav from './assets/audio/match.wav';
+import winWav from './assets/audio/win.wav';
+import loseWav from './assets/audio/lose.wav';
+import backgroundWav from './assets/audio/background.wav';
+
 
 let backTexture;
 let cardTextures = [];
@@ -18,15 +49,15 @@ function preloadTexturesAndAudio(callback) {
 
   // Load textures
   texturePromises.push(new Promise(resolve => {
-    loader.load('/assets/image/card-back.png', texture => {
+    loader.load(cardBack, texture => {
       backTexture = texture;
       resolve();
     });
   }));
 
-  for (let i = 1; i <= 12; i++) {
+  [card1, card2,card3,card4,card5,card6,card7,card8,card9,card10,card11,card12,card13,card14,card15,card16,card17,card18,card19,card20,card21,card22,card23,].forEach(card => {
     texturePromises.push(new Promise(resolve => {
-      loader.load(`/assets/image/card${i}.png`, texture => {
+      loader.load(card, texture => {
         cardTextures.push(texture);
         resolve();
       }, undefined, () => {
@@ -34,10 +65,10 @@ function preloadTexturesAndAudio(callback) {
         resolve();
       });
     }));
-  }
+  });
 
   texturePromises.push(new Promise(resolve => {
-    loader.load('/assets/mat.png', texture => {
+    loader.load(matImage, texture => {
       matTexture = texture;
       resolve();
     }, undefined, () => {
@@ -53,7 +84,7 @@ function preloadTexturesAndAudio(callback) {
 
   // Load sound effects
   audioPromises.push(new Promise(resolve => {
-    audioLoader.load('/assets/audio/flip.wav', buffer => {
+    audioLoader.load(flipWav, buffer => {
       flipSound = new THREE.Audio(audioListener);
       flipSound.setBuffer(buffer);
       flipSound.setVolume(0.5);
@@ -66,7 +97,7 @@ function preloadTexturesAndAudio(callback) {
   }));
 
   audioPromises.push(new Promise(resolve => {
-    audioLoader.load('/assets/audio/match.wav', buffer => {
+    audioLoader.load(matchWav, buffer => {
       matchSound = new THREE.Audio(audioListener);
       matchSound.setBuffer(buffer);
       matchSound.setVolume(0.7);
@@ -79,7 +110,7 @@ function preloadTexturesAndAudio(callback) {
   }));
 
   audioPromises.push(new Promise(resolve => {
-    audioLoader.load('/assets/audio/win.wav', buffer => {
+    audioLoader.load(winWav, buffer => {
       winSound = new THREE.Audio(audioListener);
       winSound.setBuffer(buffer);
       winSound.setVolume(0.8);
@@ -92,7 +123,7 @@ function preloadTexturesAndAudio(callback) {
   }));
 
   audioPromises.push(new Promise(resolve => {
-    audioLoader.load('/assets/audio/lose.wav', buffer => {
+    audioLoader.load(loseWav, buffer => {
       loseSound = new THREE.Audio(audioListener);
       loseSound.setBuffer(buffer);
       loseSound.setVolume(0.8);
@@ -105,7 +136,7 @@ function preloadTexturesAndAudio(callback) {
   }));
 
   audioPromises.push(new Promise(resolve => {
-    audioLoader.load('/assets/audio/background.wav', buffer => {
+    audioLoader.load(backgroundWav, buffer => {
       backgroundMusic = new THREE.Audio(audioListener);
       backgroundMusic.setBuffer(buffer);
       backgroundMusic.setLoop(true);
