@@ -41,9 +41,12 @@ document.querySelectorAll('.start-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.getElementById('ui-overlay').innerHTML = '<h1>Loading...</h1>';
     const level = parseInt(btn.dataset.level);
-    startGame(scene, camera, renderer, level);
-    camera.position.set(0, 15, 15);
-    camera.lookAt(0, 0, 0);
+    const audioContext = new THREE.AudioListener().context;
+    audioContext.resume().then(() => {
+      startGame(scene, camera, renderer, level);
+      camera.position.set(0, 15, 15);
+      camera.lookAt(0, 0, 0);
+    });
   });
 });
 

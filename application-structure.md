@@ -1,4 +1,5 @@
 memory-game/
+├── public/
 ├── src/
 │   ├── assets/
 │   │   ├── audio/

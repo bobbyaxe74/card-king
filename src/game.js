@@ -212,14 +212,18 @@ export function startGame(scene, camera, renderer, level = 8) {
   function clearScene() {
     // Remove all cards and mats from the scene
     cards.forEach(card => {
-      gsap.killTweensOf(card.position); // Stop floating animations
+      gsap.killTweensOf(card.position);
       scene.remove(card);
+      card.geometry.dispose();
+      card.material.forEach(mat => mat.dispose());
     });
     cards = [];
     flippedCards = [];
     scene.children.forEach(child => {
       if (child.isMesh && child.geometry instanceof THREE.PlaneGeometry) {
         scene.remove(child);
+        child.geometry.dispose();
+        child.material.dispose();
       }
     });
   }
@@ -229,14 +233,32 @@ export function startGame(scene, camera, renderer, level = 8) {
     score = 0;
     timeRemaining = level * 4000;
     document.getElementById('ui-overlay').style.display = 'none';
+    document.getElementById('timer').style.display = 'block';
+    document.getElementById('score').style.display = 'block';
     setupBoard();
     startTimer();
     renderer.shadowMap.enabled = true;
     cards.forEach(card => card.castShadow = true);
-
-    // Play background music
+  
     if (backgroundMusic && !backgroundMusic.isPlaying) {
       backgroundMusic.play();
+    }
+  }
+
+  function newGame() {
+    clearScene();
+    score = 0;
+    timeRemaining = 0;
+    document.getElementById('ui-overlay').innerHTML = `
+      <h1>Memory Game</h1>
+      <button class="start-btn" data-level="4">Easy</button>
+      <button class="start-btn" data-level="8">Medium</button>
+      <button class="start-btn" data-level="12">Hard</button>
+    `;
+    document.getElementById('ui-overlay').style.display = 'flex';
+
+    if (backgroundMusic && backgroundMusic.isPlaying) {
+      backgroundMusic.stop();
     }
   }
 
@@ -244,17 +266,16 @@ export function startGame(scene, camera, renderer, level = 8) {
     if (card.userData.flipped || flippedCards.length >= 2) return;
     card.userData.flipped = true;
     gsap.to(card.rotation, {
-      y: card.rotation.y + Math.PI,
+      y: Math.PI, // Face-up
       duration: 0.5,
       ease: 'power2.out',
     });
     flippedCards.push(card);
-
-    // Play flip sound
+  
     if (flipSound && !flipSound.isPlaying) {
       flipSound.play();
     }
-
+  
     if (flippedCards.length === 2) {
       setTimeout(checkMatch, 1000);
     }
@@ -318,7 +339,7 @@ export function startGame(scene, camera, renderer, level = 8) {
       flippedCards.forEach(card => {
         card.userData.flipped = false;
         gsap.to(card.rotation, {
-          y: card.rotation.y + Math.PI,
+          y: 0, // Face-down
           duration: 0.5,
           ease: 'power2.out',
         });
@@ -360,6 +381,7 @@ export function startGame(scene, camera, renderer, level = 8) {
             <h1>Time’s Up!</h1>
             <p>Final Score: ${score}</p>
             <button class="play-again-btn">Play Again</button>
+            <button class="new-game-btn">New Game</button>
           `;
           document.getElementById('ui-overlay').style.display = 'flex';
 
@@ -379,6 +401,9 @@ export function startGame(scene, camera, renderer, level = 8) {
 
           // Add event listener for Play Again button
           document.querySelector('.play-again-btn').addEventListener('click', restartGame);
+
+          // Add event listener for New Game button
+          document.querySelector('.new-game-btn').addEventListener('click', newGame);
         }
       }
     }, 1000);

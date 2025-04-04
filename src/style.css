@@ -64,6 +64,20 @@ body, html {
   background: #1ABC9C;
 }
 
+.new-game-btn {
+  padding: 10px 20px;
+  font-size: 24px;
+  background: #16A085;
+  color: white;
+  border: none;
+  cursor: pointer;
+  margin: 10px;
+}
+
+.new-game-btn:hover {
+  background: #1ABC9C;
+}
+
 #timer {
   position: absolute;
   top: 20px;
