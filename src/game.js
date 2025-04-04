@@ -172,14 +172,7 @@ export function startGame(scene, camera, renderer, level = 8, attachStartButtonL
     card.castShadow = true;
     scene.add(card);
 
-    gsap.to(card.position, {
-      y: "+=0.5",
-      duration: 2 + Math.random() * 2,
-      repeat: -1,
-      yoyo: true,
-      ease: "sine.inOut",
-      delay: Math.random() * 2,
-    });
+    // Removed the general floating animation here
 
     return card;
   }
@@ -204,7 +197,7 @@ export function startGame(scene, camera, renderer, level = 8, attachStartButtonL
 
   function clearScene() {
     cards.forEach(card => {
-      gsap.killTweensOf(card.position);
+      gsap.killTweensOf(card.position); // Still needed for hover animations
       scene.remove(card);
       card.geometry.dispose();
       card.material.forEach(mat => mat.dispose());
@@ -253,7 +246,7 @@ export function startGame(scene, camera, renderer, level = 8, attachStartButtonL
     if (backgroundMusic && backgroundMusic.isPlaying) {
       backgroundMusic.stop();
     }
-    attachStartButtonListeners(); // Use the passed function directly
+    attachStartButtonListeners();
   }
 
   function flipCard(card) {
@@ -307,7 +300,6 @@ export function startGame(scene, camera, renderer, level = 8, attachStartButtonL
           <h1>You Win!</h1>
           <p>Final Score: ${score}</p>
           <button class="play-again-btn">Play Again</button>
-          <button class="new-game-btn">New Game</button>
         `;
         document.getElementById('ui-overlay').style.display = 'flex';
         gsap.to(camera.position, { z: 10, y: 10, duration: 1, ease: 'power2.inOut' });
