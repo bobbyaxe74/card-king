@@ -104,6 +104,7 @@ body, html {
   z-index: 10;
   display: none;
   max-width: 80%;
+  pointer-events: none; /* Allow clicks to pass through */
 }
 
 .tutorial-overlay button {
@@ -114,6 +115,7 @@ body, html {
   color: white;
   border: none;
   cursor: pointer;
+  pointer-events: auto; /* Ensure buttons are clickable */
 }
 
 .tutorial-overlay button:hover {

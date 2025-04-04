@@ -383,13 +383,14 @@ export function startGame(scene, camera, renderer, level = 8, attachStartButtonL
 
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
-  window.addEventListener('click', (event) => {
+  function handleGameClick(event) {
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(cards);
     if (intersects.length > 0) flipCard(intersects[0].object);
-  });
+  }
+  window.addEventListener('click', handleGameClick);
 
   window.addEventListener('mousemove', (event) => {
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -520,7 +521,7 @@ export function startGame(scene, camera, renderer, level = 8, attachStartButtonL
   animateStars();
 
   preloadTexturesAndAudio(() => {
-    camera.add(audioListener); // Moved here to ensure audioListener is defined
+    camera.add(audioListener);
     document.getElementById('ui-overlay').style.display = 'none';
     setupBoard();
     startTimer();
@@ -535,6 +536,7 @@ export function startGame(scene, camera, renderer, level = 8, attachStartButtonL
 
 export function startTutorial(scene, camera, renderer, attachStartButtonListeners) {
   let tutorialCards = [];
+  let flippedCards = []; // Track flipped cards like in the game
   let step = 0;
   const tutorialOverlay = document.getElementById('tutorial-overlay');
 
@@ -546,6 +548,7 @@ export function startTutorial(scene, camera, renderer, attachStartButtonListener
       card.material.forEach(mat => mat.dispose());
     });
     tutorialCards = [];
+    flippedCards = [];
     scene.children.forEach(child => {
       if (child.isMesh && child.geometry instanceof THREE.PlaneGeometry) {
         scene.remove(child);
@@ -571,6 +574,7 @@ export function startTutorial(scene, camera, renderer, attachStartButtonListener
     card.userData = { value, flipped: false, baseY: 0 };
     card.castShadow = true;
     scene.add(card);
+    console.log(`Created card at (${x}, ${z}) with value ${value}, texture: ${cardTextures[value % cardTextures.length].image.src}`);
     return card;
   }
 
@@ -578,10 +582,10 @@ export function startTutorial(scene, camera, renderer, attachStartButtonListener
     clearScene();
     const values = [0, 0, 1, 1]; // 2x2 grid with two pairs
     const positions = [
-      { x: -1.25, z: -1.75 }, // Top-left
-      { x: 1.25, z: -1.75 },  // Top-right
-      { x: -1.25, z: 1.75 },  // Bottom-left
-      { x: 1.25, z: 1.75 },   // Bottom-right
+      { x: -1.25, z: -1.75 }, // Top-left (value: 0)
+      { x: 1.25, z: -1.75 },  // Top-right (value: 0)
+      { x: -1.25, z: 1.75 },  // Bottom-left (value: 1)
+      { x: 1.25, z: 1.75 },   // Bottom-right (value: 1)
     ];
 
     for (let i = 0; i < values.length; i++) {
@@ -595,15 +599,56 @@ export function startTutorial(scene, camera, renderer, attachStartButtonListener
   }
 
   function flipCard(card) {
-    if (card.userData.flipped) return;
+    if (card.userData.flipped || flippedCards.length >= 2) return;
     card.userData.flipped = true;
     gsap.to(card.rotation, {
       y: Math.PI,
       duration: 0.5,
       ease: 'power2.out',
     });
+    flippedCards.push(card);
+    console.log(`Flipped card with value ${card.userData.value}`);
     if (flipSound && !flipSound.isPlaying) {
       flipSound.play();
+    }
+  }
+
+  function checkMatch() {
+    if (flippedCards.length === 2) {
+      if (flippedCards[0].userData.value === flippedCards[1].userData.value) {
+        console.log('Match found!');
+        if (matchSound && !matchSound.isPlaying) {
+          matchSound.play();
+        }
+        flippedCards.forEach(card => {
+          gsap.to(card.scale, {
+            x: 0,
+            y: 0,
+            z: 0,
+            duration: 0.5,
+            onComplete: () => {
+              scene.remove(card);
+              card.geometry.dispose();
+              card.material.forEach(mat => mat.dispose());
+            },
+          });
+        });
+        tutorialCards = tutorialCards.filter(card => !flippedCards.includes(card));
+        flippedCards = [];
+        step++;
+        showTutorialStep();
+      } else {
+        console.log('No match, flipping back');
+        flippedCards.forEach(card => {
+          card.userData.flipped = false;
+          gsap.to(card.rotation, {
+            y: 0,
+            duration: 0.5,
+            ease: 'power2.out',
+          });
+        });
+        flippedCards = [];
+      }
     }
   }
 
@@ -624,13 +669,11 @@ export function startTutorial(scene, camera, renderer, attachStartButtonListener
         tutorialOverlay.innerHTML = `
           <p>Click the card on the top-left to flip it.</p>
         `;
-        window.addEventListener('click', handleFirstFlip, { once: true });
         break;
       case 2:
         tutorialOverlay.innerHTML = `
-          <p>Now click the card on the bottom-left to match it.</p>
+          <p>Now click the card on the top-right to match it.</p>
         `;
-        window.addEventListener('click', handleSecondFlip, { once: true });
         break;
       case 3:
         tutorialOverlay.innerHTML = `
@@ -649,6 +692,7 @@ export function startTutorial(scene, camera, renderer, attachStartButtonListener
           `;
           document.getElementById('ui-overlay').style.display = 'flex';
           attachStartButtonListeners();
+          window.removeEventListener('click', handleTutorialClick);
         });
         break;
     }
@@ -657,37 +701,25 @@ export function startTutorial(scene, camera, renderer, attachStartButtonListener
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
 
-  function handleFirstFlip(event) {
+  function handleTutorialClick(event) {
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(tutorialCards);
-    if (intersects.length > 0 && intersects[0].object === tutorialCards[0]) {
-      flipCard(tutorialCards[0]);
-      step++;
-      showTutorialStep();
+    if (intersects.length > 0) {
+      console.log('Clicked card:', intersects[0].object, 'Value:', intersects[0].object.userData.value);
+      if (step === 1 && intersects[0].object === tutorialCards[0]) {
+        flipCard(tutorialCards[0]);
+        step++;
+        showTutorialStep();
+      } else if (step === 2 && intersects[0].object === tutorialCards[1]) {
+        flipCard(tutorialCards[1]);
+        setTimeout(checkMatch, 1000); // Check match after both are flipped
+      }
     }
   }
 
-  function handleSecondFlip(event) {
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(tutorialCards);
-    if (intersects.length > 0 && intersects[0].object === tutorialCards[2]) {
-      flipCard(tutorialCards[2]);
-      setTimeout(() => {
-        gsap.to(tutorialCards[0].scale, { x: 0, y: 0, z: 0, duration: 0.5 });
-        gsap.to(tutorialCards[2].scale, { x: 0, y: 0, z: 0, duration: 0.5, onComplete: () => {
-          scene.remove(tutorialCards[0]);
-          scene.remove(tutorialCards[2]);
-          tutorialCards = tutorialCards.filter(card => card !== tutorialCards[0] && card !== tutorialCards[2]);
-          step++;
-          showTutorialStep();
-        }});
-      }, 1000);
-    }
-  }
+  window.addEventListener('click', handleTutorialClick);
 
   window.addEventListener('mousemove', (event) => {
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -706,7 +738,7 @@ export function startTutorial(scene, camera, renderer, attachStartButtonListener
   });
 
   preloadTexturesAndAudio(() => {
-    camera.add(audioListener); // Moved here to ensure audioListener is defined
+    camera.add(audioListener);
     document.getElementById('ui-overlay').style.display = 'none';
     setupTutorialBoard();
     showTutorialStep();
