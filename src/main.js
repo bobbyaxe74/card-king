@@ -1,7 +1,7 @@
 // main.js
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { startGame } from './game.js';
+import { startGame, startTutorial } from './game.js';
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -42,9 +42,19 @@ export function attachStartButtonListeners() {
       const level = parseInt(btn.dataset.level);
       const audioContext = new THREE.AudioListener().context;
       audioContext.resume().then(() => {
-        startGame(scene, camera, renderer, level, attachStartButtonListeners); // Pass the function
+        startGame(scene, camera, renderer, level, attachStartButtonListeners);
         camera.position.set(0, 15, 15);
         camera.lookAt(0, 0, 0);
+      });
+    });
+  });
+
+  document.querySelectorAll('.tutorial-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('ui-overlay').innerHTML = '<h1>Loading...</h1>';
+      const audioContext = new THREE.AudioListener().context;
+      audioContext.resume().then(() => {
+        startTutorial(scene, camera, renderer, attachStartButtonListeners);
       });
     });
   });

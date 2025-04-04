@@ -9,7 +9,7 @@ body, html {
 #game-container {
   width: 100vw;
   height: 100vh;
-  position: relative; /* Ensure the container is a positioning context for the timer and score */
+  position: relative;
 }
 
 #ui-overlay {
@@ -36,7 +36,7 @@ body, html {
   margin-bottom: 20px;
 }
 
-.start-btn {
+.start-btn, .tutorial-btn {
   padding: 10px 20px;
   font-size: 24px;
   background: #16A085;
@@ -46,11 +46,11 @@ body, html {
   margin: 10px;
 }
 
-.start-btn:hover {
+.start-btn:hover, .tutorial-btn:hover {
   background: #1ABC9C;
 }
 
-.play-again-btn {
+.play-again-btn, .new-game-btn {
   padding: 10px 20px;
   font-size: 24px;
   background: #16A085;
@@ -60,21 +60,7 @@ body, html {
   margin: 10px;
 }
 
-.play-again-btn:hover {
-  background: #1ABC9C;
-}
-
-.new-game-btn {
-  padding: 10px 20px;
-  font-size: 24px;
-  background: #16A085;
-  color: white;
-  border: none;
-  cursor: pointer;
-  margin: 10px;
-}
-
-.new-game-btn:hover {
+.play-again-btn:hover, .new-game-btn:hover {
   background: #1ABC9C;
 }
 
@@ -83,23 +69,53 @@ body, html {
   top: 20px;
   left: 20px;
   font-size: 24px;
-  color: #ff5555; /* Red color to match the previous bar */
-  background: rgba(0, 0, 0, 0.7); /* Match the overlay's background style */
-  padding: 5px 15px; /* Increased padding slightly to accommodate "Time: " */
+  color: #ff5555;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 5px 15px;
   border-radius: 5px;
-  z-index: 5; /* Ensure it appears above the game canvas */
-  display: none; /* Hidden until the game starts */
+  z-index: 5;
+  display: none;
 }
 
 #score {
   position: absolute;
-  top: 60px; /* Positioned below the timer */
+  top: 60px;
   left: 20px;
   font-size: 24px;
-  color: #ff5555; /* Match the timer's color */
-  background: rgba(0, 0, 0, 0.7); /* Match the timer's background */
-  padding: 5px 15px; /* Match the timer's padding */
+  color: #ff5555;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 5px 15px;
   border-radius: 5px;
-  z-index: 5; /* Ensure it appears above the game canvas */
-  display: none; /* Hidden until the game starts */
+  z-index: 5;
+  display: none;
+}
+
+.tutorial-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 20px;
+  border-radius: 10px;
+  font-size: 24px;
+  text-align: center;
+  z-index: 10;
+  display: none;
+  max-width: 80%;
+}
+
+.tutorial-overlay button {
+  margin-top: 10px;
+  padding: 5px 15px;
+  font-size: 18px;
+  background: #16A085;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.tutorial-overlay button:hover {
+  background: #1ABC9C;
 }
