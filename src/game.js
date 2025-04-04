@@ -32,7 +32,6 @@ import winWav from './assets/audio/win.wav';
 import loseWav from './assets/audio/lose.wav';
 import backgroundWav from './assets/audio/background.wav';
 
-
 let backTexture;
 let cardTextures = [];
 let matTexture;
@@ -47,7 +46,6 @@ function preloadTexturesAndAudio(callback) {
   const texturePromises = [];
   const audioPromises = [];
 
-  // Load textures
   texturePromises.push(new Promise(resolve => {
     loader.load(cardBack, texture => {
       backTexture = texture;
@@ -55,7 +53,7 @@ function preloadTexturesAndAudio(callback) {
     });
   }));
 
-  [card1, card2,card3,card4,card5,card6,card7,card8,card9,card10,card11,card12,card13,card14,card15,card16,card17,card18,card19,card20,card21,card22,card23,].forEach(card => {
+  [card1, card2, card3, card4, card5, card6, card7, card8, card9, card10, card11, card12, card13, card14, card15, card16, card17, card18, card19, card20, card21, card22, card23].forEach(card => {
     texturePromises.push(new Promise(resolve => {
       loader.load(card, texture => {
         cardTextures.push(texture);
@@ -77,12 +75,8 @@ function preloadTexturesAndAudio(callback) {
     });
   }));
 
-  // Setup audio listener
   audioListener = new THREE.AudioListener();
-  const audioContext = audioListener.context;
-  audioContext.resume(); // Ensure audio context is resumed
 
-  // Load sound effects
   audioPromises.push(new Promise(resolve => {
     audioLoader.load(flipWav, buffer => {
       flipSound = new THREE.Audio(audioListener);
@@ -152,14 +146,14 @@ function preloadTexturesAndAudio(callback) {
   Promise.all([...texturePromises, ...audioPromises]).then(callback);
 }
 
-export function startGame(scene, camera, renderer, level = 8) {
+export function startGame(scene, camera, renderer, level = 8, attachStartButtonListeners) {
   let cards = [];
   let flippedCards = [];
   let timerInterval = null;
-  let score = 0; // Initialize score
-  let timeRemaining = level * 4000; // Store timeRemaining for score calculation
+  let score = 0;
+  let consecutiveMatches = 0;
+  let timeRemaining = level * 3000 + 5000;
 
-  // Add audio listener to camera
   camera.add(audioListener);
 
   const edgeMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
@@ -178,7 +172,6 @@ export function startGame(scene, camera, renderer, level = 8) {
     card.castShadow = true;
     scene.add(card);
 
-    // Add floating animation
     gsap.to(card.position, {
       y: "+=0.5",
       duration: 2 + Math.random() * 2,
@@ -210,7 +203,6 @@ export function startGame(scene, camera, renderer, level = 8) {
   }
 
   function clearScene() {
-    // Remove all cards and mats from the scene
     cards.forEach(card => {
       gsap.killTweensOf(card.position);
       scene.remove(card);
@@ -231,7 +223,8 @@ export function startGame(scene, camera, renderer, level = 8) {
   function restartGame() {
     clearScene();
     score = 0;
-    timeRemaining = level * 4000;
+    consecutiveMatches = 0;
+    timeRemaining = level * 3000 + 5000;
     document.getElementById('ui-overlay').style.display = 'none';
     document.getElementById('timer').style.display = 'block';
     document.getElementById('score').style.display = 'block';
@@ -239,7 +232,7 @@ export function startGame(scene, camera, renderer, level = 8) {
     startTimer();
     renderer.shadowMap.enabled = true;
     cards.forEach(card => card.castShadow = true);
-  
+
     if (backgroundMusic && !backgroundMusic.isPlaying) {
       backgroundMusic.play();
     }
@@ -248,6 +241,7 @@ export function startGame(scene, camera, renderer, level = 8) {
   function newGame() {
     clearScene();
     score = 0;
+    consecutiveMatches = 0;
     timeRemaining = 0;
     document.getElementById('ui-overlay').innerHTML = `
       <h1>Memory Game</h1>
@@ -256,26 +250,26 @@ export function startGame(scene, camera, renderer, level = 8) {
       <button class="start-btn" data-level="12">Hard</button>
     `;
     document.getElementById('ui-overlay').style.display = 'flex';
-
     if (backgroundMusic && backgroundMusic.isPlaying) {
       backgroundMusic.stop();
     }
+    attachStartButtonListeners(); // Use the passed function directly
   }
 
   function flipCard(card) {
     if (card.userData.flipped || flippedCards.length >= 2) return;
     card.userData.flipped = true;
     gsap.to(card.rotation, {
-      y: Math.PI, // Face-up
+      y: Math.PI,
       duration: 0.5,
       ease: 'power2.out',
     });
     flippedCards.push(card);
-  
+
     if (flipSound && !flipSound.isPlaying) {
       flipSound.play();
     }
-  
+
     if (flippedCards.length === 2) {
       setTimeout(checkMatch, 1000);
     }
@@ -283,16 +277,14 @@ export function startGame(scene, camera, renderer, level = 8) {
 
   function checkMatch() {
     if (flippedCards[0].userData.value === flippedCards[1].userData.value) {
-      // Play match sound
       if (matchSound && !matchSound.isPlaying) {
         matchSound.play();
       }
 
-      // Calculate points based on remaining time
-      const points = Math.floor(timeRemaining / 1000); // Points = remaining seconds
-      score += points;
+      const points = Math.floor(timeRemaining / 1000);
+      consecutiveMatches++;
+      score += points + (consecutiveMatches > 1 ? consecutiveMatches * 5 : 0);
 
-      // Update score display
       const scoreElement = document.getElementById('score');
       scoreElement.textContent = `Score: ${score}`;
 
@@ -302,7 +294,11 @@ export function startGame(scene, camera, renderer, level = 8) {
           y: 0,
           z: 0,
           duration: 0.5,
-          onComplete: () => scene.remove(card),
+          onComplete: () => {
+            scene.remove(card);
+            card.geometry.dispose();
+            card.material.forEach(mat => mat.dispose());
+          },
         });
       });
       cards = cards.filter(c => !flippedCards.includes(c));
@@ -311,35 +307,33 @@ export function startGame(scene, camera, renderer, level = 8) {
           <h1>You Win!</h1>
           <p>Final Score: ${score}</p>
           <button class="play-again-btn">Play Again</button>
+          <button class="new-game-btn">New Game</button>
         `;
         document.getElementById('ui-overlay').style.display = 'flex';
         gsap.to(camera.position, { z: 10, y: 10, duration: 1, ease: 'power2.inOut' });
 
-        // Play win sound
         if (winSound && !winSound.isPlaying) {
           winSound.play();
         }
 
-        // Stop background music
         if (backgroundMusic && backgroundMusic.isPlaying) {
           backgroundMusic.stop();
         }
 
-        // Stop and hide timer and score
         if (timerInterval) {
           clearInterval(timerInterval);
         }
         document.getElementById('timer').style.display = 'none';
         document.getElementById('score').style.display = 'none';
 
-        // Add event listener for Play Again button
         document.querySelector('.play-again-btn').addEventListener('click', restartGame);
       }
     } else {
+      consecutiveMatches = 0;
       flippedCards.forEach(card => {
         card.userData.flipped = false;
         gsap.to(card.rotation, {
-          y: 0, // Face-down
+          y: 0,
           duration: 0.5,
           ease: 'power2.out',
         });
@@ -349,27 +343,23 @@ export function startGame(scene, camera, renderer, level = 8) {
   }
 
   function startTimer() {
-    timeRemaining = level * 4000; // Total time in milliseconds
+    timeRemaining = level * 3000 + 5000;
 
-    // Show the timer and score
     const timerElement = document.getElementById('timer');
     const scoreElement = document.getElementById('score');
     timerElement.style.display = 'block';
     scoreElement.style.display = 'block';
-    scoreElement.textContent = `Score: ${score}`; // Initialize score display
+    scoreElement.textContent = `Score: ${score}`;
 
-    // Update timer display
     function updateTimerDisplay() {
       const seconds = Math.floor(timeRemaining / 1000);
       const minutes = Math.floor(seconds / 60);
       const remainingSeconds = seconds % 60;
-      timerElement.textContent = `Time: ${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+      timerElement.textContent = `Time: ${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')} | Level: ${level === 4 ? 'Easy' : level === 8 ? 'Medium' : 'Hard'}`;
     }
 
-    // Initial display
     updateTimerDisplay();
 
-    // Update timer every second
     timerInterval = setInterval(() => {
       timeRemaining -= 1000;
       updateTimerDisplay();
@@ -385,24 +375,18 @@ export function startGame(scene, camera, renderer, level = 8) {
           `;
           document.getElementById('ui-overlay').style.display = 'flex';
 
-          // Play lose sound
           if (loseSound && !loseSound.isPlaying) {
             loseSound.play();
           }
 
-          // Stop background music
           if (backgroundMusic && backgroundMusic.isPlaying) {
             backgroundMusic.stop();
           }
 
-          // Hide timer and score
           document.getElementById('timer').style.display = 'none';
           document.getElementById('score').style.display = 'none';
 
-          // Add event listener for Play Again button
           document.querySelector('.play-again-btn').addEventListener('click', restartGame);
-
-          // Add event listener for New Game button
           document.querySelector('.new-game-btn').addEventListener('click', newGame);
         }
       }
@@ -427,8 +411,10 @@ export function startGame(scene, camera, renderer, level = 8) {
     cards.forEach(card => {
       if (intersects.length > 0 && intersects[0].object === card && !card.userData.flipped) {
         gsap.to(card.position, { y: card.userData.baseY + 0.5, duration: 0.2 });
+        gsap.to(card.material[4], { emissiveIntensity: 0.3, duration: 0.2 });
       } else {
         gsap.to(card.position, { y: card.userData.baseY, duration: 0.2 });
+        gsap.to(card.material[4], { emissiveIntensity: 0, duration: 0.2 });
       }
     });
   });
@@ -441,7 +427,6 @@ export function startGame(scene, camera, renderer, level = 8) {
     return array;
   }
 
-  // Mats (Floating in Space, Fully Transparent)
   const matGeometry = new THREE.PlaneGeometry(4, 8);
   const matMaterial = matTexture
     ? new THREE.MeshStandardMaterial({
@@ -476,7 +461,6 @@ export function startGame(scene, camera, renderer, level = 8) {
     scene.add(mat3);
   }
 
-  // Star Particles (Background)
   const starCount = 200;
   const starGeometry = new THREE.BufferGeometry();
 
@@ -554,7 +538,6 @@ export function startGame(scene, camera, renderer, level = 8) {
     renderer.shadowMap.enabled = true;
     cards.forEach(card => card.castShadow = true);
 
-    // Play background music
     if (backgroundMusic && !backgroundMusic.isPlaying) {
       backgroundMusic.play();
     }
