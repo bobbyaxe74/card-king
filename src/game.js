@@ -536,7 +536,7 @@ export function startGame(scene, camera, renderer, level = 8, attachStartButtonL
 
 export function startTutorial(scene, camera, renderer, attachStartButtonListeners) {
   let tutorialCards = [];
-  let flippedCards = []; // Track flipped cards like in the game
+  let flippedCards = [];
   let step = 0;
   const tutorialOverlay = document.getElementById('tutorial-overlay');
 
@@ -574,7 +574,6 @@ export function startTutorial(scene, camera, renderer, attachStartButtonListener
     card.userData = { value, flipped: false, baseY: 0 };
     card.castShadow = true;
     scene.add(card);
-    console.log(`Created card at (${x}, ${z}) with value ${value}, texture: ${cardTextures[value % cardTextures.length].image.src}`);
     return card;
   }
 
@@ -607,7 +606,6 @@ export function startTutorial(scene, camera, renderer, attachStartButtonListener
       ease: 'power2.out',
     });
     flippedCards.push(card);
-    console.log(`Flipped card with value ${card.userData.value}`);
     if (flipSound && !flipSound.isPlaying) {
       flipSound.play();
     }
@@ -616,7 +614,6 @@ export function startTutorial(scene, camera, renderer, attachStartButtonListener
   function checkMatch() {
     if (flippedCards.length === 2) {
       if (flippedCards[0].userData.value === flippedCards[1].userData.value) {
-        console.log('Match found!');
         if (matchSound && !matchSound.isPlaying) {
           matchSound.play();
         }
@@ -638,7 +635,6 @@ export function startTutorial(scene, camera, renderer, attachStartButtonListener
         step++;
         showTutorialStep();
       } else {
-        console.log('No match, flipping back');
         flippedCards.forEach(card => {
           card.userData.flipped = false;
           gsap.to(card.rotation, {
@@ -677,7 +673,17 @@ export function startTutorial(scene, camera, renderer, attachStartButtonListener
         break;
       case 3:
         tutorialOverlay.innerHTML = `
-          <p>Great! Matching pairs removes them.<br>Match all pairs before time runs out to win.</p>
+          <p>Great! Now click the card on the bottom-left.</p>
+        `;
+        break;
+      case 4:
+        tutorialOverlay.innerHTML = `
+          <p>Now click the card on the bottom-right to match it.</p>
+        `;
+        break;
+      case 5:
+        tutorialOverlay.innerHTML = `
+          <p>Well done! You’ve matched all pairs.<br>Match all pairs before time runs out to win.</p>
           <button id="finish-tutorial">Finish</button>
         `;
         document.getElementById('finish-tutorial').addEventListener('click', () => {
@@ -707,14 +713,20 @@ export function startTutorial(scene, camera, renderer, attachStartButtonListener
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(tutorialCards);
     if (intersects.length > 0) {
-      console.log('Clicked card:', intersects[0].object, 'Value:', intersects[0].object.userData.value);
       if (step === 1 && intersects[0].object === tutorialCards[0]) {
         flipCard(tutorialCards[0]);
         step++;
         showTutorialStep();
       } else if (step === 2 && intersects[0].object === tutorialCards[1]) {
         flipCard(tutorialCards[1]);
-        setTimeout(checkMatch, 1000); // Check match after both are flipped
+        setTimeout(checkMatch, 1000);
+      } else if (step === 3 && intersects[0].object === tutorialCards[0]) { // Now bottom-left
+        flipCard(tutorialCards[0]);
+        step++;
+        showTutorialStep();
+      } else if (step === 4 && intersects[0].object === tutorialCards[1]) { // Now bottom-right
+        flipCard(tutorialCards[1]);
+        setTimeout(checkMatch, 1000);
       }
     }
   }
