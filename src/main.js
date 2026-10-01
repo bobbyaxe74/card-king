@@ -1,68 +1,107 @@
-// main.js
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { startGame, startTutorial } from './game.js';
+// Entry point: screen switching and button wiring.
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-document.getElementById('game-container').appendChild(renderer.domElement);
+import { Board } from './board.js';
+import { Game, LEVELS, bestScore } from './game.js';
+import { Tutorial } from './tutorial.js';
+import { FACES, CARD_BACK, preloadImages } from './assets.js';
+import { unlockAudio, toggleMute, onMuteChange } from './audio.js';
 
-scene.background = new THREE.Color(0x000000);
+const $ = (id) => document.getElementById(id);
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-scene.add(ambientLight);
-const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-directionalLight.position.set(5, 10, 5);
-directionalLight.castShadow = true;
-directionalLight.shadow.mapSize.width = 512;
-directionalLight.shadow.mapSize.height = 512;
-directionalLight.shadow.camera.near = 0.5;
-directionalLight.shadow.camera.far = 50;
-scene.add(directionalLight);
+const screens = { menu: $('menu'), play: $('play') };
+const stats = $('stats');
+const tutorialMessage = $('tutorial-message');
+const result = $('result');
 
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enabled = false;
+const board = new Board($('board'), $('board-wrap'));
+const game = new Game(
+  board,
+  { level: $('stat-level'), time: $('stat-time'), score: $('stat-score') },
+  showResult
+);
+const tutorial = new Tutorial(board, tutorialMessage, showMenu);
 
-camera.position.set(0, 10, 20);
-camera.lookAt(0, 0, 0);
+let lastLevel = 'easy';
 
-function animate() {
-  requestAnimationFrame(animate);
-  renderer.render(scene, camera);
-}
-animate();
-
-export function attachStartButtonListeners() {
-  document.querySelectorAll('.start-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.getElementById('ui-overlay').innerHTML = '<h1>Loading...</h1>';
-      const level = parseInt(btn.dataset.level);
-      const audioContext = new THREE.AudioListener().context;
-      audioContext.resume().then(() => {
-        startGame(scene, camera, renderer, level, attachStartButtonListeners);
-        camera.position.set(0, 15, 15);
-        camera.lookAt(0, 0, 0);
-      });
-    });
+function showScreen(name) {
+  Object.keys(screens).forEach((key) => {
+    screens[key].hidden = key !== name;
   });
-
-  document.querySelectorAll('.tutorial-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.getElementById('ui-overlay').innerHTML = '<h1>Loading...</h1>';
-      const audioContext = new THREE.AudioListener().context;
-      audioContext.resume().then(() => {
-        startTutorial(scene, camera, renderer, attachStartButtonListeners);
-      });
-    });
-  });
+  result.hidden = true;
 }
-attachStartButtonListeners();
 
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+function showMenu() {
+  game.stop();
+  tutorial.stop();
+  board.clear();
+  Object.keys(LEVELS).forEach((key) => {
+    const best = bestScore(key);
+    document.querySelector('[data-best="' + key + '"]').textContent = best ? 'Best ' + best : '';
+  });
+  showScreen('menu');
+}
+
+function startGame(levelKey) {
+  tutorial.stop();
+  lastLevel = levelKey;
+  stats.hidden = false;
+  tutorialMessage.hidden = true;
+  showScreen('play');
+  game.start(levelKey);
+}
+
+function startTutorial() {
+  game.stop();
+  stats.hidden = true;
+  tutorialMessage.hidden = false;
+  showScreen('play');
+  tutorial.start();
+}
+
+function showResult({ won, score, isNewBest, best }) {
+  $('result-title').textContent = won ? 'You win!' : 'Time’s up!';
+  $('result-text').textContent =
+    'Score: ' + score + (isNewBest && score > 0 ? ' — new best!' : '  ·  Best: ' + best);
+  result.hidden = false;
+  result.querySelector('[data-action="again"]').focus();
+}
+
+// All buttons go through one delegated listener.
+document.addEventListener('click', (event) => {
+  const button = event.target.closest('button');
+  if (!button) return;
+
+  const level = button.getAttribute('data-level');
+  const action = button.getAttribute('data-action');
+  if (level || action) unlockAudio(); // first gesture: allowed to start audio now
+
+  if (level) startGame(level);
+  else if (action === 'tutorial') startTutorial();
+  else if (action === 'again') startGame(lastLevel);
+  else if (action === 'menu') showMenu();
+  else if (action === 'mute') toggleMute();
 });
+
+document.addEventListener('keydown', (event) => {
+  if ((event.key === 'Escape' || event.key === 'Esc') && screens.menu.hidden) showMenu();
+});
+
+const SOUND_ON =
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none"/></svg>';
+const SOUND_OFF =
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9l6 6M22 9l-6 6" fill="none"/></svg>';
+
+onMuteChange((muted) => {
+  const buttons = document.querySelectorAll('[data-action="mute"]');
+  for (let i = 0; i < buttons.length; i++) {
+    buttons[i].innerHTML = muted ? SOUND_OFF : SOUND_ON;
+    buttons[i].setAttribute('aria-label', muted ? 'Turn sound on' : 'Turn sound off');
+  }
+});
+
+showMenu();
+
+// Warm the image cache once the menu is up, without competing with first paint.
+const warmCache = () => preloadImages([CARD_BACK].concat(FACES), 15000);
+if (window.requestIdleCallback) window.requestIdleCallback(warmCache);
+else setTimeout(warmCache, 200);

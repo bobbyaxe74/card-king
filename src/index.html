@@ -2,23 +2,62 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>3D Card Flip Memory Game</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1a26" />
+  <title>Card King – Memory Game</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='6' y='3' width='20' height='26' rx='4' fill='%2316a085'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <div id="game-container">
-    <div id="ui-overlay">
-      <h1>Memory Game</h1>
-      <button class="start-btn" data-level="4">Easy</button>
-      <button class="start-btn" data-level="8">Medium</button>
-      <button class="start-btn" data-level="12">Hard</button>
-      <button class="tutorial-btn">Tutorial</button> <!-- New button -->
+  <main id="app">
+    <!-- Main menu -->
+    <section id="menu" class="screen">
+      <h1 class="title">Card King</h1>
+      <p class="subtitle">Flip the cards, find the pairs, beat the clock.</p>
+      <div class="menu-buttons">
+        <button type="button" class="btn btn-level" data-level="easy">Easy <small data-best="easy"></small></button>
+        <button type="button" class="btn btn-level" data-level="medium">Medium <small data-best="medium"></small></button>
+        <button type="button" class="btn btn-level" data-level="hard">Hard <small data-best="hard"></small></button>
+        <button type="button" class="btn btn-secondary" data-action="tutorial">How to play</button>
+      </div>
+      <button type="button" class="btn-icon" data-action="mute" aria-label="Toggle sound"></button>
+    </section>
+
+    <!-- Game / tutorial -->
+    <section id="play" class="screen" hidden>
+      <header class="hud">
+        <button type="button" class="btn-icon" data-action="menu" aria-label="Back to menu">&#8592;</button>
+        <div class="hud-stats" id="stats">
+          <span class="stat"><span class="stat-label">Level</span> <b id="stat-level"></b></span>
+          <span class="stat"><span class="stat-label">Time</span> <b id="stat-time">00:00</b></span>
+          <span class="stat"><span class="stat-label">Score</span> <b id="stat-score">0</b></span>
+        </div>
+        <div class="hud-message" id="tutorial-message" aria-live="polite" hidden></div>
+        <button type="button" class="btn-icon" data-action="mute" aria-label="Toggle sound"></button>
+      </header>
+      <div class="board-wrap" id="board-wrap">
+        <div class="board" id="board"></div>
+      </div>
+    </section>
+
+    <!-- Round result -->
+    <div id="result" class="modal" role="dialog" aria-modal="true" aria-labelledby="result-title" hidden>
+      <div class="modal-box">
+        <h2 id="result-title"></h2>
+        <p id="result-text"></p>
+        <div class="modal-buttons">
+          <button type="button" class="btn" data-action="again">Play again</button>
+          <button type="button" class="btn btn-secondary" data-action="menu">Menu</button>
+        </div>
+      </div>
     </div>
-    <div id="timer">Time: 00:00</div>
-    <div id="score">Score: 0</div>
-    <div id="tutorial-overlay" class="tutorial-overlay"></div> <!-- New overlay for tutorial text -->
-  </div>
-  <script type="module" src="main.js"></script>
+  </main>
+
+  <noscript><p class="fallback">Card King needs JavaScript enabled to run.</p></noscript>
+  <script nomodule>
+    document.getElementById('app').innerHTML =
+      '<p class="fallback">Sorry, this browser is too old to run Card King. Please update your browser.</p>';
+  </script>
+  <script type="module" src="./main.js"></script>
 </body>
 </html>
